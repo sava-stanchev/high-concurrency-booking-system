@@ -10,7 +10,7 @@ public class BookingSimulation {
         int threadPoolSize = 50; // number of threads to simulate concurrent users
 
         // Create 100 seats
-        SeatManager manager = new SeatManager(totalSeats);
+        DBSeatManager manager = new DBSeatManager();
         // 50 threads simulating concurrent users
         ExecutorService executor = Executors.newFixedThreadPool(threadPoolSize);
 

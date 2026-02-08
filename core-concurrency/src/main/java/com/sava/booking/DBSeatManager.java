@@ -27,6 +27,13 @@ public class DBSeatManager {
             if (rs.next()) {
                 boolean reserved = rs.getBoolean("reserved");
                 if (!reserved) {
+                    // simulate business logic delay
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt(); // preserve interrupt status
+                    }
+
                     // Reserve seat
                     PreparedStatement updateStmt = conn.prepareStatement(
                             "UPDATE seats SET reserved = TRUE WHERE id = ?"
