@@ -7,9 +7,9 @@ import java.sql.Connection;
 import java.sql.SQLException;
 
 public class Database {
-    private static final String URL = "jdbc:postgresql://localhost:5432/booking_system";
-    private static final String USER = "postgres";
-    private static final String PASSWORD = "123456";
+    private static final String URL = System.getenv("DB_URL");
+    private static final String USER = System.getenv("DB_USER");
+    private static final String PASSWORD = System.getenv("DB_PASSWORD");
 
     private static final HikariDataSource dataSource;
 
