@@ -1,4 +1,4 @@
-package com.sava.booking;
+package com.sava.booking.model;
 
 import java.util.concurrent.locks.ReentrantLock;
 

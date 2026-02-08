@@ -1,4 +1,4 @@
-package com.sava.booking;
+package com.sava.booking.config;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;

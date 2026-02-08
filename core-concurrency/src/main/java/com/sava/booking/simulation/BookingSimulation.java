@@ -1,4 +1,6 @@
-package com.sava.booking;
+package com.sava.booking.simulation;
+
+import com.sava.booking.service.SeatService;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -11,7 +13,7 @@ public class BookingSimulation {
         int threadPoolSize = 50; // number of threads to simulate concurrent users
 
         // Create 100 seats
-        DBSeatManager manager = new DBSeatManager();
+        SeatService manager = new SeatService();
         // 50 threads simulating concurrent users
         ExecutorService executor = Executors.newFixedThreadPool(threadPoolSize);
 

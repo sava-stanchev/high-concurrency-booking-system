@@ -1,11 +1,13 @@
-package com.sava.booking;
+package com.sava.booking.service;
+
+import com.sava.booking.config.Database;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class DBSeatManager {
+public class SeatService {
 
     /**
      * Attempts to reserve a seat in the database using a transaction.
