@@ -16,7 +16,13 @@ public class Seat {
         return reserved;
     }
 
-    public void reserve() {
-        reserved = true;
+    // synchronized method to prevent race conditions
+    public synchronized boolean reserve() {
+        if (!reserved) {
+            reserved = true;
+            return true;
+        } else {
+            return false;
+        }
     }
 }

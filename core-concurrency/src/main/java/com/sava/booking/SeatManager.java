@@ -15,9 +15,8 @@ public class SeatManager {
 
     public boolean reserveSeat(int seatId) {
         for (Seat seat : seats) {
-            if (seat.getId() == seatId && !seat.isReserved()) {
-                seat.reserve();
-                return true;
+            if (seat.getId() == seatId) {
+                return seat.reserve(); // now thread-safe
             }
         }
         return false;
