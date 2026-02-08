@@ -18,37 +18,39 @@ public class DBSeatManager {
             conn.setAutoCommit(false); // start transaction
 
             // Check if seat is already reserved AND lock the row to prevent concurrent bookings
-            PreparedStatement checkStmt = conn.prepareStatement(
-                    "SELECT reserved FROM seats WHERE id = ? FOR UPDATE"
-            );
-            checkStmt.setInt(1, seatId);
-            ResultSet rs = checkStmt.executeQuery();
+            try (PreparedStatement checkStmt = conn.prepareStatement(
+                    "SELECT reserved FROM seats WHERE id = ? FOR UPDATE")) {
+                checkStmt.setInt(1, seatId);
 
-            if (rs.next()) {
-                boolean reserved = rs.getBoolean("reserved");
-                if (!reserved) {
-                    // simulate business logic delay
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt(); // preserve interrupt status
+                try (ResultSet rs = checkStmt.executeQuery()) {
+                    if (rs.next()) {
+                        boolean reserved = rs.getBoolean("reserved");
+                        if (!reserved) {
+                            // simulate business logic delay
+                            try {
+                                Thread.sleep(100);
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt(); // preserve interrupt status
+                            }
+
+                            // Reserve seat
+                            try (PreparedStatement updateStmt = conn.prepareStatement(
+                                    "UPDATE seats SET reserved = TRUE WHERE id = ?")) {
+                                updateStmt.setInt(1, seatId);
+                                updateStmt.executeUpdate();
+                            }
+
+                            conn.commit();
+                            return true;
+                        } else {
+                            conn.rollback(); // seat already taken, undo transaction
+                            return false;
+                        }
+                    } else {
+                        conn.rollback();
+                        return false; // seat does not exist
                     }
-
-                    // Reserve seat
-                    PreparedStatement updateStmt = conn.prepareStatement(
-                            "UPDATE seats SET reserved = TRUE WHERE id = ?"
-                    );
-                    updateStmt.setInt(1, seatId);
-                    updateStmt.executeUpdate();
-                    conn.commit();
-                    return true;
-                } else {
-                    conn.rollback(); // seat already taken, undo transaction
-                    return false;
                 }
-            } else {
-                conn.rollback();
-                return false; // seat does not exist
             }
         } catch (SQLException e) {
             e.printStackTrace();
