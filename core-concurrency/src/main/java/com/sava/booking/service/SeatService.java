@@ -1,57 +1,54 @@
 package com.sava.booking.service;
 
-import com.sava.booking.config.Database;
+import jakarta.transaction.Transactional;
+import org.springframework.stereotype.Service;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+@Service
 public class SeatService {
+    private final DataSource dataSource;
+
+    public SeatService(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
 
     /**
-     * Attempts to reserve a seat in the database using a transaction.
-     * Thread-safe: uses row-level locking to prevent double-booking.
+     * Reserves a seat in the database if it's not already taken.
+     * Uses row-level locking (SELECT ... FOR UPDATE) for thread-safety.
+     * Transactions are managed by Spring.
+     *
      * @param seatId the seat ID to book
      * @return true if reserved, false if already reserved or doesn't exist
      */
+    @Transactional
     public boolean reserveSeat(int seatId) {
-        try (Connection conn = Database.getConnection()) {
-            conn.setAutoCommit(false); // start transaction
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement checkStmt = conn.prepareStatement(
+                     "SELECT reserved FROM seats WHERE id = ? FOR UPDATE")) {
+            checkStmt.setInt(1, seatId);
 
-            // Check if seat is already reserved AND lock the row to prevent concurrent bookings
-            try (PreparedStatement checkStmt = conn.prepareStatement(
-                    "SELECT reserved FROM seats WHERE id = ? FOR UPDATE")) {
-                checkStmt.setInt(1, seatId);
+            try (ResultSet rs = checkStmt.executeQuery()) {
+                if (rs.next()) {
+                    boolean reserved = rs.getBoolean("reserved");
 
-                try (ResultSet rs = checkStmt.executeQuery()) {
-                    if (rs.next()) {
-                        boolean reserved = rs.getBoolean("reserved");
-                        if (!reserved) {
-                            // simulate business logic delay
-                            try {
-                                Thread.sleep(100);
-                            } catch (InterruptedException e) {
-                                Thread.currentThread().interrupt(); // preserve interrupt status
-                            }
-
-                            // Reserve seat
-                            try (PreparedStatement updateStmt = conn.prepareStatement(
-                                    "UPDATE seats SET reserved = TRUE WHERE id = ?")) {
-                                updateStmt.setInt(1, seatId);
-                                updateStmt.executeUpdate();
-                            }
-
-                            conn.commit();
-                            return true;
-                        } else {
-                            conn.rollback(); // seat already taken, undo transaction
-                            return false;
+                    if (!reserved) {
+                        try (PreparedStatement updateStmt = conn.prepareStatement(
+                                "UPDATE seats SET reserved = TRUE WHERE id = ?")) {
+                            updateStmt.setInt(1, seatId);
+                            updateStmt.executeUpdate();
                         }
+
+                        return true;
                     } else {
-                        conn.rollback();
-                        return false; // seat does not exist
+                        return false;
                     }
+                } else {
+                    return false; // seat does not exist
                 }
             }
         } catch (SQLException e) {
