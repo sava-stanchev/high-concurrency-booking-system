@@ -1,6 +1,8 @@
 package com.sava.booking.simulation;
 
 import com.sava.booking.service.SeatService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ExecutorService;
@@ -8,8 +10,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Simulates concurrent seat booking to test race condition handling.
+ * Creates 500 users competing for 100 seats using a thread pool of 50 threads.
+ */
 @Component
 public class BookingSimulation {
+    private static final Logger log = LoggerFactory.getLogger(BookingSimulation.class);
+
     private final SeatService seatService;
 
     public BookingSimulation(SeatService seatService) {
@@ -19,25 +27,38 @@ public class BookingSimulation {
     public void runSimulation() {
         int totalSeats = 100;
         int totalUsers = 500;
-        int threadPoolSize = 50; // number of threads to simulate concurrent users
+        int threadPoolSize = 50;
 
-        // Create a thread pool
+        log.info("Starting booking simulation: {} users, {} seats, {} threads",
+                totalUsers, totalSeats, threadPoolSize);
+
+        long startTime = System.currentTimeMillis();
+
         try (ExecutorService executor = Executors.newFixedThreadPool(threadPoolSize)) {
-            // Metrics
             AtomicInteger successCount = new AtomicInteger(0);
             AtomicInteger failCount = new AtomicInteger(0);
+            AtomicInteger errorCount = new AtomicInteger(0);
 
-            // Simulate 500 users trying to book seats
             for (int i = 0; i < totalUsers; i++) {
+                final int userId = i + 1;
                 final int seatId = (i % totalSeats) + 1; // cycle through seats 1..100
-                executor.submit(() -> {
-                    boolean success = seatService.reserveSeat(seatId);
-                    if (success) successCount.incrementAndGet();
-                    else failCount.incrementAndGet();
 
-                    System.out.println(Thread.currentThread().getName() +
-                            " tried to book seat " + seatId +
-                            " - Success: " + success);
+                executor.submit(() -> {
+                    try {
+                        boolean success = seatService.reserveSeat(seatId);
+
+                        if (success) {
+                            successCount.incrementAndGet();
+                            log.debug("User {} successfully booked seat {}", userId, seatId);
+                        } else {
+                            failCount.incrementAndGet();
+                            log.debug("User {} failed to book seat {} (already taken)", userId, seatId);
+                        }
+                    } catch (Exception e) {
+                        errorCount.incrementAndGet();
+                        log.error("User {} encountered error booking seat {}: {}",
+                                userId, seatId, e.getMessage());
+                    }
                 });
             }
 
@@ -47,13 +68,23 @@ public class BookingSimulation {
             try {
                 boolean finished = executor.awaitTermination(1, TimeUnit.MINUTES);
                 if (!finished) {
-                    System.out.println("WARNING: Not all booking tasks finished within 1 minute!");
+                    log.warn("Not all booking tasks finished within 1 minute!");
                 }
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt(); // restore interrupt status
-                System.out.println("Simulation interrupted!");
+                Thread.currentThread().interrupt();
+                log.error("Simulation interrupted!", e);
             }
+
+            long duration = System.currentTimeMillis() - startTime;
+            double throughput = (totalUsers * 1000.0) / duration;
+
+            log.info("=== Booking Simulation Summary ===");
+            log.info("Total users: {}", totalUsers);
+            log.info("Successful bookings: {}", successCount.get());
+            log.info("Failed bookings: {}", failCount.get());
+            log.info("Errors: {}", errorCount.get());
+            log.info("Duration: {}ms", duration);
+            log.info("Throughput: {} bookings/sec", String.format("%.2f", throughput));
         }
-        // Executor will automatically close here
     }
 }
