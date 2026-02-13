@@ -11,9 +11,4 @@ public class BookingApplication {
     public static void main(String[] args) {
         SpringApplication.run(BookingApplication.class, args);
     }
-
-    @Bean
-    CommandLineRunner run(BookingSimulation simulation) {
-        return args -> simulation.runSimulation();
-    }
 }

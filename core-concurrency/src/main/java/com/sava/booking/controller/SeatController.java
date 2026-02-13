@@ -1,6 +1,7 @@
 package com.sava.booking.controller;
 
 import com.sava.booking.service.SeatService;
+import com.sava.booking.simulation.BookingSimulation;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -8,9 +9,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/seats")
 public class SeatController {
     private final SeatService seatService;
+    private final BookingSimulation simulation;
 
-    public SeatController(SeatService seatService) {
+    public SeatController(SeatService seatService, BookingSimulation simulation) {
         this.seatService = seatService;
+        this.simulation = simulation;
     }
 
     @PostMapping("/{id}/reserve")
@@ -23,6 +26,12 @@ public class SeatController {
             return ResponseEntity.badRequest()
                     .body("Seat " + id + " is already reserved or does not exist.");
         }
+    }
+
+    @PostMapping("/simulate")
+    public ResponseEntity<String> runSimulation() {
+        simulation.runSimulation();
+        return ResponseEntity.ok("Booking simulation executed.");
     }
 
     @PostMapping("/reset")
