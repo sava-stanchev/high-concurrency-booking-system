@@ -24,4 +24,10 @@ public class SeatController {
                     .body("Seat " + id + " is already reserved or does not exist.");
         }
     }
+
+    @PostMapping("/reset")
+    public ResponseEntity<String> resetSeats() {
+        int updated = seatService.resetAllSeats();
+        return ResponseEntity.ok(updated + " seats reset successfully.");
+    }
 }

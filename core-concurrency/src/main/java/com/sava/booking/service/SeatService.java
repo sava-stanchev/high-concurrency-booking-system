@@ -48,4 +48,9 @@ public class SeatService {
             throw new RuntimeException(e);
         }
     }
+
+    @Transactional
+    public int resetAllSeats() {
+        return jdbcTemplate.update("UPDATE seats SET reserved = FALSE");
+    }
 }
