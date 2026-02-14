@@ -33,16 +33,19 @@ public class SeatService {
                     seatId
             );
 
-            if (reserved != null && !reserved) {
-                // Update the seat to reserved
+            if (Boolean.FALSE.equals(reserved)) {
+                // seat is available, reserve it
                 jdbcTemplate.update(
                         "UPDATE seats SET reserved = TRUE WHERE id = ?",
                         seatId
                 );
                 return true;
+            } else {
+                throw new SeatAlreadyReservedException("Seat " + seatId + " is already reserved.");
             }
-
-            return false;
+        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+            // seat does not exist
+            throw new SeatNotFoundException("Seat " + seatId + " does not exist.");
         } catch (Exception e) {
             log.error("Failed to reserve seat {}", seatId, e);
             throw new RuntimeException(e);

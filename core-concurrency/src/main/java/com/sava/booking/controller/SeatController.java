@@ -16,24 +16,21 @@ public class SeatController {
         this.simulation = simulation;
     }
 
+    // reserve a specific seat
     @PostMapping("/{id}/reserve")
     public ResponseEntity<String> reserveSeat(@PathVariable int id) {
-        boolean success = seatService.reserveSeat(id);
-
-        if (success) {
-            return ResponseEntity.ok("Seat " + id + " reserved successfully.");
-        } else {
-            return ResponseEntity.badRequest()
-                    .body("Seat " + id + " is already reserved or does not exist.");
-        }
+        seatService.reserveSeat(id);
+        return ResponseEntity.ok("Seat " + id + " reserved successfully.");
     }
 
+    // trigger the booking simulation
     @PostMapping("/simulate")
     public ResponseEntity<String> runSimulation() {
         simulation.runSimulation();
         return ResponseEntity.ok("Booking simulation executed.");
     }
 
+    // reset all seats for re-running the simulation
     @PostMapping("/reset")
     public ResponseEntity<String> resetSeats() {
         int updated = seatService.resetAllSeats();
