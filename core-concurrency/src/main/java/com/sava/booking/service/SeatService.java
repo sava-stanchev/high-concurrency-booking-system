@@ -2,6 +2,7 @@ package com.sava.booking.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +27,6 @@ public class SeatService {
     @Transactional
     public boolean reserveSeat(int seatId) {
         try {
-            // Lock the row and check if it's reserved
             Boolean reserved = jdbcTemplate.queryForObject(
                     "SELECT reserved FROM seats WHERE id = ? FOR UPDATE",
                     Boolean.class,
@@ -34,7 +34,6 @@ public class SeatService {
             );
 
             if (Boolean.FALSE.equals(reserved)) {
-                // seat is available, reserve it
                 jdbcTemplate.update(
                         "UPDATE seats SET reserved = TRUE WHERE id = ?",
                         seatId
@@ -43,12 +42,8 @@ public class SeatService {
             } else {
                 throw new SeatAlreadyReservedException("Seat " + seatId + " is already reserved.");
             }
-        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
-            // seat does not exist
+        } catch (EmptyResultDataAccessException e) {
             throw new SeatNotFoundException("Seat " + seatId + " does not exist.");
-        } catch (Exception e) {
-            log.error("Failed to reserve seat {}", seatId, e);
-            throw new RuntimeException(e);
         }
     }
 
