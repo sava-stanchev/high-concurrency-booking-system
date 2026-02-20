@@ -48,6 +48,41 @@ public class SeatService {
     }
 
     @Transactional
+    public boolean reserveSeatWithReservation(int seatId, int userId) {
+        try {
+            // Lock the seat row
+            Boolean reserved = jdbcTemplate.queryForObject(
+                    "SELECT reserved FROM seats WHERE id = ? FOR UPDATE",
+                    Boolean.class,
+                    seatId
+            );
+
+            if (Boolean.FALSE.equals(reserved)) {
+                // Mark seat as reserved
+                jdbcTemplate.update(
+                        "UPDATE seats SET reserved = TRUE WHERE id = ?",
+                        seatId
+                );
+
+                // Insert a reservation record
+                jdbcTemplate.update(
+                        "INSERT INTO reservations (seat_id, user_id, status) VALUES (?, ?, ?)",
+                        seatId,
+                        userId,
+                        ReservationStatus.PENDING.name()
+                );
+
+                return true;
+            } else {
+                throw new SeatAlreadyReservedException("Seat " + seatId + " is already reserved.");
+            }
+
+        } catch (EmptyResultDataAccessException e) {
+            throw new SeatNotFoundException("Seat " + seatId + " does not exist.");
+        }
+    }
+
+    @Transactional
     public int resetAllSeats() {
         return jdbcTemplate.update("UPDATE seats SET reserved = FALSE");
     }
