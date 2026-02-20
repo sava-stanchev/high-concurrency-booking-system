@@ -1,5 +1,6 @@
 package com.sava.booking.simulation;
 
+import com.sava.booking.service.SeatAlreadyReservedException;
 import com.sava.booking.service.SeatService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,15 +46,12 @@ public class BookingSimulation {
 
                 executor.submit(() -> {
                     try {
-                        boolean success = seatService.reserveSeat(seatId);
-
-                        if (success) {
-                            successCount.incrementAndGet();
-                            log.debug("User {} successfully booked seat {}", userId, seatId);
-                        } else {
-                            failCount.incrementAndGet();
-                            log.debug("User {} failed to book seat {} (already taken)", userId, seatId);
-                        }
+                        seatService.reserveSeatWithReservation(seatId, userId);
+                        successCount.incrementAndGet();
+                        log.debug("User {} successfully booked seat {}", userId, seatId);
+                    } catch (SeatAlreadyReservedException e) {
+                        failCount.incrementAndGet();
+                        log.debug("User {} failed to book seat {} (already reserved)", userId, seatId);
                     } catch (Exception e) {
                         errorCount.incrementAndGet();
                         log.error("User {} encountered error booking seat {}: {}",
