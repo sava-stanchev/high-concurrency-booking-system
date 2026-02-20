@@ -47,36 +47,45 @@ public class SeatService {
         }
     }
 
+    /**
+     * Reserve a seat for a user.
+     * Only succeeds if the seat isn't already reserved.
+     * Runs atomically in a single transaction.
+     *
+     * @param seatId seat to reserve
+     * @param userId user making the reservation
+     * @return true if reservation succeeded
+     */
     @Transactional
     public boolean reserveSeatWithReservation(int seatId, int userId) {
         try {
-            // Lock the seat row
-            Boolean reserved = jdbcTemplate.queryForObject(
-                    "SELECT reserved FROM seats WHERE id = ? FOR UPDATE",
+            Boolean exists = jdbcTemplate.queryForObject(
+                    "SELECT TRUE FROM seats WHERE id = ?",
                     Boolean.class,
                     seatId
             );
 
-            if (Boolean.FALSE.equals(reserved)) {
-                // Mark seat as reserved
-                jdbcTemplate.update(
-                        "UPDATE seats SET reserved = TRUE WHERE id = ?",
-                        seatId
-                );
+            if (!Boolean.TRUE.equals(exists)) {
+                throw new SeatNotFoundException("Seat " + seatId + " does not exist.");
+            }
 
-                // Insert a reservation record
-                jdbcTemplate.update(
-                        "INSERT INTO reservations (seat_id, user_id, status) VALUES (?, ?, ?)",
-                        seatId,
-                        userId,
-                        ReservationStatus.PENDING.name()
-                );
+            int updated = jdbcTemplate.update(
+                    "UPDATE seats SET reserved = TRUE WHERE id = ? AND reserved = FALSE",
+                    seatId
+            );
 
-                return true;
-            } else {
+            if (updated == 0) {
                 throw new SeatAlreadyReservedException("Seat " + seatId + " is already reserved.");
             }
 
+            jdbcTemplate.update(
+                    "INSERT INTO reservations (seat_id, user_id, status) VALUES (?, ?, ?)",
+                    seatId,
+                    userId,
+                    ReservationStatus.PENDING.name()
+            );
+
+            return true;
         } catch (EmptyResultDataAccessException e) {
             throw new SeatNotFoundException("Seat " + seatId + " does not exist.");
         }
@@ -84,6 +93,7 @@ public class SeatService {
 
     @Transactional
     public int resetAllSeats() {
+        jdbcTemplate.update("DELETE FROM reservations");
         return jdbcTemplate.update("UPDATE seats SET reserved = FALSE");
     }
 }
