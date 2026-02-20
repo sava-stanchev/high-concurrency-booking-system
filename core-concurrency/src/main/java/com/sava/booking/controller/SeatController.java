@@ -2,6 +2,9 @@ package com.sava.booking.controller;
 
 import com.sava.booking.service.SeatService;
 import com.sava.booking.simulation.BookingSimulation;
+import com.sava.booking.service.SeatAlreadyReservedException;
+import com.sava.booking.service.SeatNotFoundException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +24,22 @@ public class SeatController {
     public ResponseEntity<String> reserveSeat(@PathVariable int id) {
         seatService.reserveSeat(id);
         return ResponseEntity.ok("Seat " + id + " reserved successfully.");
+    }
+
+    // reserve a seat with a userId
+    @PostMapping("/{seatId}/reserve/{userId}")
+    public ResponseEntity<String> reserveSeatWithUser(
+            @PathVariable int seatId,
+            @PathVariable int userId
+    ) {
+        try {
+            seatService.reserveSeatWithReservation(seatId, userId);
+            return ResponseEntity.ok("Seat " + seatId + " reserved for user " + userId + " successfully.");
+        } catch (SeatNotFoundException | SeatAlreadyReservedException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal error");
+        }
     }
 
     // trigger the booking simulation
